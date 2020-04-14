@@ -5,19 +5,17 @@ import (
 	"time"
 
 	"github.com/labstack/echo"
+	"github.com/radean0909/guild-chat/api"
+	"github.com/radean0909/guild-chat/api/models"
 )
 
-type Message struct {
-	ID        string    `json:"ID"`
-	Sender    string    `json:"sender"`
-	Recipient string    `json:"recipient"`
-	Date      time.Time `json:"date"`
-}
 
-func GetMessageByID(c echo.Context) error {
-	id := c.Param("id")
+func GetMessageByID(svc *api.Service) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		id := c.Param("id")
 
-	msg := &Message{}
+		msg, err := svc.DB.GetMessage(id)
 
-	return c.JSON(http.StatusOK, nil)
+		return c.JSON(http.StatusOK, nil)
+	}
 }

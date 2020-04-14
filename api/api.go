@@ -8,14 +8,15 @@ import (
 	"syscall"
 	"time"
 
+	"bitbucket.org/redeam/tools/echo-middleware/logging"
+	"bitbucket.org/redeam/tools/logutil/echologrus"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/sirupsen/logrus"
 
-	"github.com/radean0909/guild-chat/handlers"
-	"github.com/radean0909/guild-chat/internal/db"
+	"github.com/radean0909/guild-chat/api/handlers"
+	"github.com/radean0909/guild-chat/api/internal/db"
 )
-
 
 // HealthGracePeriod provided enough time to wait after a SIGTERM has been
 // provided to verify a healthcheck has been made against the service to update
@@ -23,14 +24,14 @@ import (
 // graceful shutdown.
 const HealthGracePeriod time.Duration = 10 * time.Second
 
-type Server struct {
+type Service struct {
 	echo  *echo.Echo
-	db *db.Driver
+	DB    *db.Driver
 	ready bool
 }
 
-func New(log *logrus.Entry) *Server {
-	s := &Server{}
+func New(log *logrus.Entry) *Service {
+	s := &Service{}
 	e := echo.New()
 	e.HideBanner = false
 	e.HidePort = false
@@ -74,9 +75,9 @@ func New(log *logrus.Entry) *Server {
 	return s
 }
 
-// Start the server listening on addr. On a SIGTERM the server will
+// Start the Service listening on addr. On a SIGTERM the Service will
 // start a graceful shutdown.
-func (s *Server) Start(addr string) error {
+func (s *Service) Start(addr string) error {
 	s.ready = true
 	defer func() { s.ready = false }()
 
@@ -94,7 +95,7 @@ func (s *Server) Start(addr string) error {
 }
 
 // HandleReady checks for kubernetes
-func (s *Server) HandleReady() echo.HandlerFunc {
+func (s *Service) HandleReady() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		if s.ready {
 			return c.NoContent(http.StatusOK)
@@ -104,7 +105,7 @@ func (s *Server) HandleReady() echo.HandlerFunc {
 }
 
 // HandleAlive checks for kubernetes
-func (s *Server) HandleAlive() echo.HandlerFunc {
+func (s *Service) HandleAlive() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		return c.NoContent(http.StatusOK)
 	}

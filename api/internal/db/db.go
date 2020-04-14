@@ -2,8 +2,11 @@ package db
 
 import (
 	"database/sql"
+
+	"github.com/radean0909/guild-chat/api/models"
 )
 
-type Driver struct {
-	*sql.DB
+type Driver interface {
+	GetMessage(id string) (error, *models.Message)
+	
 }
