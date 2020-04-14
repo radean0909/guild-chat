@@ -319,6 +319,12 @@ func (d *Driver) CreateUser(user *models.User) (*models.User, error) {
 	d.mux.RLock()
 	defer d.mux.RUnlock()
 
+	for _, usr := range d.users {
+		if usr.Username == user.Username {
+			return nil, constants.ErrBadRequest
+		}
+	}
+
 	user.ID = uuid.New().String()
 	d.users[user.ID] = user
 	return user, nil
