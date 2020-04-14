@@ -13,8 +13,9 @@ type MessageHandler struct {
 	DB db.Driver
 }
 
-// GetMessageByID - GET: retrieve a single message by message ID
+// GetMessageByID - retrieve a single message by message ID
 func (h *MessageHandler) GetMessageByID(c echo.Context) error {
+
 	id := c.Param("id")
 
 	msg, err := h.DB.GetMessage(id)

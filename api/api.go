@@ -78,6 +78,8 @@ func New() *Service {
 
 	// message endpoints - singular message between two users
 	msgs := e.Group("/message")
+
+	msgs.GET("/:id", s.getMessageByID)
 	msgs.GET("/:id", s.getMessageByID)
 	msgs.POST("/", s.postMessage)
 
