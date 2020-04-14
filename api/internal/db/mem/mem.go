@@ -73,14 +73,15 @@ func (d *Driver) CreateMessage(msg *models.Message) (*models.Message, error) {
 		return nil, constants.ErrNotFound
 	}
 
-	msg.Date = time.Now()
+	now := time.Now()
+	msg.Date = &now
 	msg.ID = uuid.New().String()
 	d.msgs[msg.ID] = msg
 
 	// now add to the existing conversation, or create a new one
 	if convo, ok := d.convos[Key{msg.Sender, msg.Recipient}]; ok {
 		convo.Messages = append(convo.Messages, msg)
-		convo.Updated = time.Now()
+		convo.Updated = &now
 	} else {
 		convo, err := d.CreateConversation(msg.Sender, msg.Recipient)
 		if err != nil {
@@ -217,11 +218,13 @@ func (d *Driver) CreateConversation(sender, recipient string) (*models.Conversat
 		return nil, constants.ErrBadRequest
 	}
 
+	now := time.Now()
+
 	convo := &models.Conversation{
 		ID:        uuid.New().String(),
 		Sender:    sender,
 		Recipient: recipient,
-		Updated:   time.Now(),
+		Updated:   &now,
 		Messages:  []*models.Message{},
 	}
 

@@ -5,13 +5,14 @@ A simple messaging API for the guild code challenge
 ## requirements
 
 - go version 1.13 or greater
-- swagger server (such as go-swagger)
+- git
+- restful client to process data
 
 ## installation
 
 - Clone the repository: `git clone https://github.com/radean0909/guild-chat.git && cd guild-chat`
-- Run the build script: `./scripts/build.sh`
-- Run the start script: `./scriptw/start.sh`
+- Build the project: `go build ./cmd/main.go -o guild-chat`
+- Run the project: `./guild-chat` or `guild-chat.exe`
 
 ## usage
 
@@ -51,12 +52,14 @@ Gets a single message by id. Errors if message not found or id missing.
 
 On success returns Message JSON
 
-```{
+``` JSON
+{
     sender: uuid,
     recipient: uuid,
     date: date,
     message: string,
-}```
+}
+```
 
 On failure returns error JSON
 
@@ -64,8 +67,20 @@ Returns: 200, 400, 404, 500
 
 #### POST /message
 
-Creates a single message. Errors if message is missing sender, recipient, or message string.
+Creates a single message from JSON body content (application/json)
+Errors if message is missing sender, recipient, or message string.
+
+Input body
+``` JSON
+{
+    sender: uuid,
+    recipient: uuid,
+    message: string,
+}
+```
+
 On success returns Message JSON
+``` JSON
 {
     id: uuid,
     sender: uuid,
@@ -73,7 +88,127 @@ On success returns Message JSON
     date: date,
     message: string,
 }
+```
 
 On failure returns error JSON
 
 Returns: 200, 400, 404, 500
+
+### users
+
+#### GET /user/:id
+
+Retrieves a single user by id. Errors if user is not found or id is missing.
+
+On success returns User JSON
+
+``` JSON
+{
+    id: uuid,
+    username: string,
+    email: string
+}
+```
+
+On error, returns an error object
+
+Returns: 200, 400, 404, 500
+
+#### POST /user
+
+Creates a new user from JSON body content (application/json)
+Errors if missing username or email, or if username is taken
+
+Input body:
+``` JSON
+{
+    username: string,
+    email: string
+}
+```
+
+On success returns User JSON
+
+``` JSON
+{
+    id: uuid,
+    username: string,
+    email: string
+}
+```
+
+On error, returns an error object
+
+Returns: 200, 400, 404, 500
+
+#### DELETE /user/:id
+
+(Soft) Deletes a single user. Errors if userid cannot be found
+
+On success returns no content
+
+On error, returns an error object
+
+Returns: 200, 400, 404, 500
+
+### conversations
+
+### GET /conversation/:to/:from?start=YYYY-MM-DD&until=YYYY-MM-DD&limit=100
+
+Gets a conversation between two users. If there are no messages sent to the recipient, returns 404.
+
+Params: 
+- to - path - uuid
+- from - path - uuid
+- start - query - date in YYYY-MM-DD format for earliest message (defaults to 30 days ago)
+- until - query - date in YYYY-MM-DD format for most recent message (defaults to now)
+- limit - query - maximum number of messages to return, defaults to 100
+
+On success returns an array of message JSON object. Only includes messages sent *to* the recipient. If the sending user is deleted, redacts uuid with `deleted`
+
+``` JSON
+[
+    {
+        id: uuid,
+        sender: uuid,
+        recipient: uuid,
+        message: string,
+        date: date
+    }, 
+    ...
+]
+```
+
+On error returns error message
+
+Returns: 200, 404, 500
+
+### GET /conversation/:to?start=YYYY-MM-DD&until=YYYY-MM-DD&limit=100
+
+Gets all conversations sent to a user.
+
+Params: 
+- to - path - uuid
+- start - query - date in YYYY-MM-DD format for earliest message (defaults to 30 days ago)
+- until - query - date in YYYY-MM-DD format for most recent message (defaults to now)
+- limit - query - maximum number of messages to return, defaults to 100
+
+On success returns an array of message JSON objects. Only includes messages sent *to* the recipient. If the sending user is deleted, redacts uuid with `deleted`
+
+``` JSON
+[
+    {
+        id: uuid,
+        sender: uuid,
+        recipient: uuid,
+        message: string,
+        date: date
+    }, 
+    ...
+]
+
+```
+
+On error returns error message
+
+Returns: 200, 404, 500

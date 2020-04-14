@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
@@ -80,7 +79,6 @@ func New() *Service {
 	msgs := e.Group("/message")
 
 	msgs.GET("/:id", s.getMessageByID)
-	msgs.GET("/:id", s.getMessageByID)
 	msgs.POST("/", s.postMessage)
 
 	// converstion endpoints - a conversation includes all messages between two users
@@ -95,10 +93,6 @@ func New() *Service {
 	users.DELETE("/:id", s.deleteUserByID)
 
 	s.echo = e
-
-	for _, route := range e.Routes() {
-		fmt.Printf("[%s] %s\n", route.Method, route.Path)
-	}
 
 	return s
 }

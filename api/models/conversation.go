@@ -5,9 +5,9 @@ import (
 )
 
 type Conversation struct {
-	ID        string     `json:"ID"`
-	Sender    string     `json:"sender"`
-	Recipient string     `json:"recipient"`
-	Updated   time.Time  `json:"updated"`
-	Messages  []*Message `json:"messages"`
+	ID        string     `json:"id,omitempty"`
+	Sender    string     `json:"sender,omitempty"`
+	Recipient string     `json:"recipient,omitempty"`
+	Updated   *time.Time `json:"updated,omitempty"`
+	Messages  []*Message `json:"messages,omitempty"`
 }

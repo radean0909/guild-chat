@@ -33,6 +33,8 @@ func (h *ConversationHandler) GetConversation(c echo.Context) error {
 		if err != nil {
 			return handleError(c, err)
 		}
+	} else {
+		start = time.Now().AddDate(0, 0, -30)
 	}
 
 	if untilParam != "" {
@@ -40,6 +42,8 @@ func (h *ConversationHandler) GetConversation(c echo.Context) error {
 		if err != nil {
 			return handleError(c, err)
 		}
+	} else {
+		until = time.Now()
 	}
 
 	if limitParam != "" {
@@ -92,6 +96,8 @@ func (h *ConversationHandler) ListConversations(c echo.Context) error {
 		if err != nil {
 			return handleError(c, err)
 		}
+	} else {
+		start = time.Now().AddDate(0, 0, -30)
 	}
 
 	if untilParam != "" {
@@ -99,6 +105,8 @@ func (h *ConversationHandler) ListConversations(c echo.Context) error {
 		if err != nil {
 			return handleError(c, err)
 		}
+	} else {
+		until = time.Now()
 	}
 
 	if limitParam != "" {
