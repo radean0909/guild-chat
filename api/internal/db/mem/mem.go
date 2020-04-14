@@ -181,7 +181,7 @@ func (d *Driver) GetConversation(sender, recipient string, from, until time.Time
 		// redact deleted users
 		modifiedConvo := *convo
 		for i, msg := range modifiedConvo.Messages {
-			if d.users[msg.Sender].ArchivedOn.Before(time.Now()) && !d.users[msg.Sender].ArchivedOn.Equal(time.Time{}) {
+			if d.users[msg.Sender].ArchivedOn == nil || (d.users[msg.Sender].ArchivedOn.Before(time.Now()) && !d.users[msg.Sender].ArchivedOn.Equal(time.Time{})) {
 				modifiedConvo.Messages[i].Sender = "deleted"
 			}
 		}
@@ -273,7 +273,7 @@ func (d *Driver) ListConversations(recipient string, from, until time.Time) ([]*
 			modified := *convo
 			// here we look up to see if the user is deleted, if so, change their user id to hide it
 			sender := modified.Sender
-			if d.users[sender].ArchivedOn.Before(time.Now()) && !d.users[sender].ArchivedOn.Equal(time.Time{}) {
+			if d.users[sender].ArchivedOn == nil || (d.users[sender].ArchivedOn.Before(time.Now()) && !d.users[sender].ArchivedOn.Equal(time.Time{})) {
 				modified.Sender = "deleted"
 			}
 			conversations = append(conversations, &modified)
