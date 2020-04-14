@@ -60,6 +60,7 @@ func New() *Service {
 	e.Use(middleware.Logger())
 
 	// global middleware
+	e.Use(middleware.AddTrailingSlash())
 	e.Use(middleware.GzipWithConfig(middleware.DefaultGzipConfig))
 	e.Use(middleware.RecoverWithConfig(middleware.DefaultRecoverConfig))
 
@@ -77,9 +78,8 @@ func New() *Service {
 
 	// message endpoints - singular message between two users
 	msgs := e.Group("/message")
-
+	msgs.POST("", s.postMessage)
 	msgs.GET("/:id", s.getMessageByID)
-	msgs.POST("/", s.postMessage)
 
 	// converstion endpoints - a conversation includes all messages between two users
 	conversations := e.Group("/conversation")
@@ -88,7 +88,7 @@ func New() *Service {
 
 	// user endpoints
 	users := e.Group("/user")
-	users.POST("/", s.postUser)
+	users.POST("", s.postUser)
 	users.GET("/:id", s.getUserByID)
 	users.DELETE("/:id", s.deleteUserByID)
 
