@@ -2,20 +2,19 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"bitbucket.org/redeam/tools/echo-middleware/logging"
-	"bitbucket.org/redeam/tools/logutil/echologrus"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
-	"github.com/sirupsen/logrus"
 
 	"github.com/radean0909/guild-chat/api/handlers"
 	"github.com/radean0909/guild-chat/api/internal/db"
+	"github.com/radean0909/guild-chat/api/internal/db/mem"
 )
 
 // HealthGracePeriod provided enough time to wait after a SIGTERM has been
@@ -25,23 +24,47 @@ import (
 const HealthGracePeriod time.Duration = 10 * time.Second
 
 type Service struct {
-	echo  *echo.Echo
-	DB    *db.Driver
-	ready bool
+	echo         *echo.Echo
+	DB           db.Driver
+	MsgHandler   *handlers.MessageHandler
+	ConvoHandler *handlers.ConversationHandler
+	UserHandler  *handlers.UserHandler
+	ready        bool
 }
 
-func New(log *logrus.Entry) *Service {
+func New() *Service {
 	s := &Service{}
 	e := echo.New()
 	e.HideBanner = false
 	e.HidePort = false
 
-	e.Logger = echologrus.Logger{Logger: log.Logger}
-	e.Use(logging.RequestLogs(log))
+	// Set up the database, for the example we are using an in memory datastore
+	// In production, this would connect to something more permanent
+	// Depending on more specific details (more reads than writes, future features)
+	// I would likely choosd Postgres or MongoDB
+	s.DB = mem.NewDriver()
+
+	// Set up the individual "handlers" - in production this might dial out to gRPC handler services
+	s.MsgHandler = &handlers.MessageHandler{
+		DB: s.DB,
+	}
+
+	s.ConvoHandler = &handlers.ConversationHandler{
+		DB: s.DB,
+	}
+
+	s.UserHandler = &handlers.UserHandler{
+		DB: s.DB,
+	}
+
+	// logger - in production this would likely be more robust
+	e.Use(middleware.Logger())
 
 	// global middleware
 	e.Use(middleware.GzipWithConfig(middleware.DefaultGzipConfig))
 	e.Use(middleware.RecoverWithConfig(middleware.DefaultRecoverConfig))
+
+	// authentication/authorization middlewares could exist at the top level or on individual groups or routes
 
 	// kubernetes health checks - important for pod green status when deployed in a container on the cloud
 	e.GET("/alive", s.HandleAlive())
@@ -50,25 +73,30 @@ func New(log *logrus.Entry) *Service {
 	// system status - useful for local api testing, otherwise, could be used to provide other metadata
 	// such as messages sent, uptime, etc
 	e.GET("/system/status", func(c echo.Context) error {
-		return c.String(http.StatusOK, "OK")
+		return c.String(http.StatusOK, "It's alive!")
 	})
 
 	// message endpoints - singular message between two users
 	msgs := e.Group("/message")
-	msgs.GET("/:id", handlers.GetMessageByID)
-	msgs.POST("/", handlers.PostMessage)
+	msgs.GET("/:id", s.getMessageByID)
+	msgs.POST("/", s.postMessage)
 
-	// converstion endpoings - a conversation includes all messages between two users
+	// converstion endpoints - a conversation includes all messages between two users
 	conversations := e.Group("/conversation")
-	conversations.GET("/:to/:from", handlers.GetConversation)
-	conversations.GET("/:to", handlers.ListConversations)
+	conversations.GET("/:to/:from", s.getConversation)
+	conversations.GET("/:to", s.listConversations)
 
+	// user endpoints
 	users := e.Group("/user")
-	users.POST("/", handlers.PostUser)
-	users.GET("/:id", handlers.GetUserByID)
-	users.DELETE("/:id", handlers.DeleteUserByID)
+	users.POST("/", s.postUser)
+	users.GET("/:id", s.getUserByID)
+	users.DELETE("/:id", s.deleteUserByID)
 
 	s.echo = e
+
+	for _, route := range e.Routes() {
+		fmt.Printf("[%s] %s\n", route.Method, route.Path)
+	}
 
 	return s
 }
@@ -84,6 +112,7 @@ func (s *Service) Start(addr string) error {
 		c := make(chan os.Signal, 1)
 		signal.Notify(c, syscall.SIGTERM)
 		<-c
+		s.echo.Logger.Info("shutting down...")
 		s.ready = false
 		time.Sleep(HealthGracePeriod)
 		s.echo.Shutdown(context.Background())
@@ -107,4 +136,36 @@ func (s *Service) HandleAlive() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		return c.NoContent(http.StatusOK)
 	}
+}
+
+// root handlers - these are used to help pass DB down to the lower level handler
+// messages
+func (s *Service) getMessageByID(c echo.Context) error {
+	return s.MsgHandler.GetMessageByID(c)
+}
+
+func (s *Service) postMessage(c echo.Context) error {
+	return s.MsgHandler.PostMessage(c)
+}
+
+// conversations
+func (s *Service) getConversation(c echo.Context) error {
+	return s.ConvoHandler.GetConversation(c)
+}
+
+func (s *Service) listConversations(c echo.Context) error {
+	return s.ConvoHandler.ListConversations(c)
+}
+
+// users
+func (s *Service) postUser(c echo.Context) error {
+	return s.UserHandler.PostUser(c)
+}
+
+func (s *Service) getUserByID(c echo.Context) error {
+	return s.UserHandler.GetUserByID(c)
+}
+
+func (s *Service) deleteUserByID(c echo.Context) error {
+	return s.UserHandler.DeleteUserbyID(c)
 }

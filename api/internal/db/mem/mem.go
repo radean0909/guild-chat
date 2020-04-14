@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/radean0909/guild-chat/api/internal/constants"
 	"github.com/radean0909/guild-chat/api/internal/db"
-	"github.com/radean0909/guild-chat/api/internal/errors"
 	"github.com/radean0909/guild-chat/api/models"
 )
 
@@ -41,7 +41,7 @@ func NewDriver() *Driver {
 func (d *Driver) GetMessage(id string) (*models.Message, error) {
 
 	if id == "" {
-		return nil, errors.ErrBadRequest
+		return nil, constants.ErrBadRequest
 	}
 
 	d.mux.RLock()
@@ -49,7 +49,7 @@ func (d *Driver) GetMessage(id string) (*models.Message, error) {
 
 	msg, ok := d.msgs[id]
 	if !ok {
-		return nil, errors.ErrNotFound
+		return nil, constants.ErrNotFound
 	}
 
 	return msg, nil
@@ -57,8 +57,8 @@ func (d *Driver) GetMessage(id string) (*models.Message, error) {
 
 // CreateMessage - creates a new message
 func (d *Driver) CreateMessage(msg *models.Message) (*models.Message, error) {
-	if msg.Recipient == "" || msg.Sender == "" {
-		return nil, errors.ErrBadRequest
+	if msg.Recipient == "" || msg.Sender == "" || msg.Content == "" {
+		return nil, constants.ErrBadRequest
 	}
 
 	d.mux.RLock()
@@ -66,11 +66,11 @@ func (d *Driver) CreateMessage(msg *models.Message) (*models.Message, error) {
 
 	// if the user or sender id are invalid, throw error - in this case a not found, so as not to tip off malicious attacks of a bad user id
 	if _, ok := d.users[msg.Sender]; !ok {
-		return nil, errors.ErrNotFound
+		return nil, constants.ErrNotFound
 	}
 
 	if _, ok := d.users[msg.Recipient]; !ok {
-		return nil, errors.ErrNotFound
+		return nil, constants.ErrNotFound
 	}
 
 	msg.Date = time.Now()
@@ -98,18 +98,18 @@ func (d *Driver) CreateMessage(msg *models.Message) (*models.Message, error) {
 // if limit is 0, it is ignored, otherwise only the most recent messages, up to a count of limit, are returned
 func (d *Driver) ListMessages(recipient string, from, until time.Time, limit int) ([]*models.Message, error) {
 	if recipient == "" {
-		return nil, errors.ErrBadRequest
+		return nil, constants.ErrBadRequest
 	}
 
 	if from.After(until) {
-		return nil, errors.ErrBadRequest
+		return nil, constants.ErrBadRequest
 	}
 
 	d.mux.RLock()
 	defer d.mux.RUnlock()
 
 	if _, ok := d.users[recipient]; !ok {
-		return nil, errors.ErrNotFound
+		return nil, constants.ErrNotFound
 	}
 
 	msgs := []*models.Message{}
@@ -143,11 +143,11 @@ func (d *Driver) ListMessages(recipient string, from, until time.Time, limit int
 // if a 0 time is passed for either of these values, that filtering parameter is ignored
 func (d *Driver) GetConversation(sender, recipient string, from, until time.Time) (*models.Conversation, error) {
 	if sender == "" || recipient == "" {
-		return nil, errors.ErrBadRequest
+		return nil, constants.ErrBadRequest
 	}
 
 	if from.After(until) {
-		return nil, errors.ErrBadRequest
+		return nil, constants.ErrBadRequest
 	}
 
 	d.mux.RLock()
@@ -155,16 +155,16 @@ func (d *Driver) GetConversation(sender, recipient string, from, until time.Time
 
 	// if the user or sender id are invalid, throw error - in this case a not found, so as not to tip off malicious attacks of a bad user id
 	if _, ok := d.users[sender]; !ok {
-		return nil, errors.ErrNotFound
+		return nil, constants.ErrNotFound
 	}
 
 	if _, ok := d.users[recipient]; !ok {
-		return nil, errors.ErrNotFound
+		return nil, constants.ErrNotFound
 	}
 
 	convo, ok := d.convos[Key{sender, recipient}]
 	if !ok {
-		return nil, errors.ErrNotFound
+		return nil, constants.ErrNotFound
 	}
 
 	// only return conversations that match the filters
@@ -177,16 +177,23 @@ func (d *Driver) GetConversation(sender, recipient string, from, until time.Time
 
 	if (convo.Updated.After(from) || convo.Updated.Equal(from)) &&
 		(convo.Updated.Before(until) || convo.Updated.Equal(until)) {
-		return convo, nil
+		// redact deleted users
+		modifiedConvo := *convo
+		for i, msg := range modifiedConvo.Messages {
+			if d.users[msg.Sender].ArchivedOn.Before(time.Now()) && !d.users[msg.Sender].ArchivedOn.Equal(time.Time{}) {
+				modifiedConvo.Messages[i].Sender = "deleted"
+			}
+		}
+		return &modifiedConvo, nil
 	}
 
-	return nil, errors.ErrNotFound
+	return nil, constants.ErrNotFound
 }
 
 // CreateConversation - creates a conversation between a sender and recipient
 func (d *Driver) CreateConversation(sender, recipient string) (*models.Conversation, error) {
 	if sender == "" || recipient == "" {
-		return nil, errors.ErrBadRequest
+		return nil, constants.ErrBadRequest
 	}
 
 	d.mux.RLock()
@@ -194,20 +201,20 @@ func (d *Driver) CreateConversation(sender, recipient string) (*models.Conversat
 
 	// if the user or sender id are invalid, throw error - in this case a not found, so as not to tip off malicious attacks of a bad user id
 	if _, ok := d.users[sender]; !ok {
-		return nil, errors.ErrNotFound
+		return nil, constants.ErrNotFound
 	}
 
 	if _, ok := d.users[recipient]; !ok {
-		return nil, errors.ErrNotFound
+		return nil, constants.ErrNotFound
 	}
 
 	// If a conversation already exists, throw error
 	if _, ok := d.convos[Key{sender, recipient}]; ok {
-		return nil, errors.ErrBadRequest
+		return nil, constants.ErrBadRequest
 	}
 
 	if _, ok := d.convos[Key{recipient, sender}]; ok {
-		return nil, errors.ErrBadRequest
+		return nil, constants.ErrBadRequest
 	}
 
 	convo := &models.Conversation{
@@ -230,11 +237,11 @@ func (d *Driver) CreateConversation(sender, recipient string) (*models.Conversat
 // if a 0 time is passed for either of these values, that filtering parameter is ignored
 func (d *Driver) ListConversations(recipient string, from, until time.Time) ([]*models.Conversation, error) {
 	if recipient == "" {
-		return nil, errors.ErrBadRequest
+		return nil, constants.ErrBadRequest
 	}
 
 	if from.After(until) {
-		return nil, errors.ErrBadRequest
+		return nil, constants.ErrBadRequest
 	}
 
 	d.mux.RLock()
@@ -242,7 +249,7 @@ func (d *Driver) ListConversations(recipient string, from, until time.Time) ([]*
 
 	// if the receipient id is invalid, throw error
 	if _, ok := d.users[recipient]; !ok {
-		return nil, errors.ErrNotFound
+		return nil, constants.ErrNotFound
 	}
 
 	conversations := []*models.Conversation{}
@@ -260,7 +267,13 @@ func (d *Driver) ListConversations(recipient string, from, until time.Time) ([]*
 		if key.Recipient == recipient &&
 			(convo.Updated.After(from) || convo.Updated.Equal(from)) &&
 			(convo.Updated.Before(until) || convo.Updated.Equal(until)) {
-			conversations = append(conversations, convo)
+			modified := *convo
+			// here we look up to see if the user is deleted, if so, change their user id to hide it
+			sender := modified.Sender
+			if d.users[sender].ArchivedOn.Before(time.Now()) && !d.users[sender].ArchivedOn.Equal(time.Time{}) {
+				modified.Sender = "deleted"
+			}
+			conversations = append(conversations, &modified)
 		}
 	}
 
@@ -271,7 +284,7 @@ func (d *Driver) ListConversations(recipient string, from, until time.Time) ([]*
 func (d *Driver) GetUser(id string) (*models.User, error) {
 
 	if id == "" {
-		return nil, errors.ErrBadRequest
+		return nil, constants.ErrBadRequest
 	}
 
 	d.mux.RLock()
@@ -279,23 +292,25 @@ func (d *Driver) GetUser(id string) (*models.User, error) {
 
 	user, ok := d.users[id]
 	if !ok {
-		return nil, errors.ErrNotFound
+		return nil, constants.ErrNotFound
 	}
+
+	archived := *user.ArchivedOn
 
 	// if the user has been soft deleted, don't return it
 	// note: golang doesn't have null time, so look for 0 time
-	if user.ArchivedOn.Before(time.Now()) && !user.ArchivedOn.Equal(time.Time{}) {
+	if archived.Before(time.Now()) || archived.Equal(time.Time{}) {
 		return user, nil
 	}
 
-	return nil, errors.ErrNotFound
+	return nil, constants.ErrNotFound
 }
 
 // CreateUser - creates a new user
 func (d *Driver) CreateUser(user *models.User) (*models.User, error) {
 
 	if user == nil || user.Email == "" || user.Username == "" {
-		return nil, errors.ErrBadRequest
+		return nil, constants.ErrBadRequest
 	}
 
 	d.mux.RLock()
@@ -309,7 +324,7 @@ func (d *Driver) CreateUser(user *models.User) (*models.User, error) {
 // DeleteUser - soft deletes a user
 func (d *Driver) DeleteUser(id string) error {
 	if id == "" {
-		return errors.ErrBadRequest
+		return constants.ErrBadRequest
 	}
 
 	d.mux.RLock()
@@ -317,10 +332,11 @@ func (d *Driver) DeleteUser(id string) error {
 
 	user, ok := d.users[id]
 	if !ok {
-		return errors.ErrNotFound
+		return constants.ErrNotFound
 	}
 
-	user.ArchivedOn = time.Now()
+	archived := time.Now()
+	user.ArchivedOn = &archived
 
 	return nil
 }

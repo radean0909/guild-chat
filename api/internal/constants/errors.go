@@ -1,12 +1,12 @@
-package errors
+package constants
 
 import (
-	stdErrors "errors"
+	"errors"
 )
 
 var (
 	// ErrNotFound - standard not found error - 404
-	ErrNotFound = stdErrors.New("not found")
+	ErrNotFound = errors.New("not found")
 	// ErrBadRequest - standard bad request error - typically due to bad data - 400
-	ErrBadRequest = stdErrors.New("bad request")
+	ErrBadRequest = errors.New("bad request")
 )
