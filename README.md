@@ -82,22 +82,24 @@ Creates a single message from JSON body content (application/json)
 Errors if message is missing sender, recipient, or message string.
 
 Input body
+
 ``` JSON
 {
-    sender: uuid,
-    recipient: uuid,
-    message: string,
+    "sender": uuid,
+    "recipient": uuid,
+    "message": string,
 }
 ```
 
 On success returns Message JSON
+
 ``` JSON
 {
-    id: uuid,
-    sender: uuid,
-    recipient: uuid,
-    date: date,
-    message: string,
+    "id": uuid,
+    "sender": uuid,
+    "recipient": uuid,
+    "date": date,
+    "message": string,
 }
 ```
 
@@ -115,9 +117,9 @@ On success returns User JSON
 
 ``` JSON
 {
-    id: uuid,
-    username: string,
-    email: string
+    "id": uuid,
+    "username": string,
+    "email": string
 }
 ```
 
@@ -131,10 +133,11 @@ Creates a new user from JSON body content (application/json)
 Errors if missing username or email, or if username is taken
 
 Input body:
+
 ``` JSON
 {
-    username: string,
-    email: string
+    "username": string,
+    "email": string
 }
 ```
 
@@ -142,9 +145,9 @@ On success returns User JSON
 
 ``` JSON
 {
-    id: uuid,
-    username: string,
-    email: string
+    "id": uuid,
+    "username": string,
+    "email": string
 }
 ```
 
@@ -180,11 +183,11 @@ On success returns an array of message JSON object. Only includes messages sent 
 ``` JSON
 [
     {
-        id: uuid,
-        sender: uuid,
-        recipient: uuid,
-        message: string,
-        date: date
+        "id": uuid,
+        "sender": uuid,
+        "recipient": uuid,
+        "message": string,
+        "date": date
     }, 
     ...
 ]
@@ -209,11 +212,11 @@ On success returns an array of message JSON objects. Only includes messages sent
 ``` JSON
 [
     {
-        id: uuid,
-        sender: uuid,
-        recipient: uuid,
-        message: string,
-        date: date
+        "id": uuid,
+        "sender": uuid,
+        "recipient": uuid,
+        "message": string,
+        "date": date
     }, 
     ...
 ]
