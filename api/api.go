@@ -61,15 +61,13 @@ func New(log *logrus.Entry) *Service {
 	// converstion endpoings - a conversation includes all messages between two users
 	conversations := e.Group("/conversation")
 	conversations.GET("/:to/:from", handlers.GetConversation)
-	conversations.GET("/:to", GetAllConversations)
+	conversations.GET("/:to", handlers.ListConversations)
 
 	users := e.Group("/user")
 	users.POST("/", handlers.PostUser)
 	users.GET("/:id", handlers.GetUserByID)
 	users.DELETE("/:id", handlers.DeleteUserByID)
 
-	e.GET("/check-in/:extSysId", handlers.GetCheckIn)
-	e.POST("/check-in", handlers.PostCheckIn)
 	s.echo = e
 
 	return s
