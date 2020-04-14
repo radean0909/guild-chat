@@ -11,13 +11,23 @@ A simple messaging API for the guild code challenge
 ## installation
 
 - Clone the repository: `git clone https://github.com/radean0909/guild-chat.git && cd guild-chat`
-- Build the project: `go build ./cmd/main.go -o guild-chat`
+- Build the project: `go build -o guild-chat ./cmd/main.go `
 - Run the project: `./guild-chat` or `guild-chat.exe`
 
 ## usage
 
 - using curl, postman, or something similar make requests to the api that is now running on localhost:8000
-- refer to the documentation by running `go-swagger serve ./swagger/guild-chat
+
+To properly test a conversation you must:
+- make two new users (POST /user)
+- using the different user id's, create a new message (POST /message)
+- retrieve messages by all users (GET /conversation/:to)
+- retrieve messages from one user to another (GET /conversation/:to/:from)
+
+Other things to try:
+- retrieve messages sent by a deleted user (DELETE /user/:id)
+- try adjusting conversation query parameters
+- run `go test ./...` from the root of the directory to execute unit tests
 
 ## notes and improvements
 
@@ -33,9 +43,10 @@ Regarding that methodology:
 - Finally, instead of relying on external db mocking tools or standing up external resources, seeding data, etc, unit tests can be accomplished with the in-memory store. 
 
 ### the testing story
-- The service relies on unit tests at the 'db' level (in-memory store), at the handler level, and for important utility functions
+- Due to time constraints, there is only minimal unit tests (to be illustrative) [see api/internal/db/mem/mem_test]
+- In a production app, the service would rely on unit tests at the 'db' level (in-memory store), at the handler level, and for important utility functions
 - In a production app, an end-to-end runner would be ideal for regression testing
-- Integration testing can occur by standing up the service and excercising the endpoints directly
+- Integration testing can occur by standing up the service and excercising the endpoints directly (see above)
 
 ### improvements
 - leverage containerization through docker/k8s or a serverless architecture. I opted to avoid this at present, because, though critical, adding complexities to app at this stage doesn't reveal much, and ratchets up the complexity
